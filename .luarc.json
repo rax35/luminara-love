@@ -1,0 +1,17 @@
+{
+  "$schema": "https://raw.githubusercontent.com/LuaLS/vscode-lua/master/setting/schema.json",
+  "runtime.version": "LuaJIT",
+  "diagnostics.severity": {
+    "duplicate-set-field": "Hint"
+  },
+  "format.enable": true,
+  "format.defaultConfig": {
+    "indent_style": "space",
+    "indent_size": "2"
+  },
+  "workspace.library": [
+    "${3rd}/love2d/library",
+    "${3rd}/luv/library",
+    "${3rd}/busted/library"
+  ]
+}

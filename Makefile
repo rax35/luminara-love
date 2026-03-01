@@ -1,0 +1,14 @@
+SOURCE_FILES := $(wildcard game/*)
+PROJECT_NAME := Luminara
+
+.PHONY: copy clean
+
+copy: $(PROJECT_NAME).love
+	adb connect localhost:55555
+	adb push $(PROJECT_NAME).love storage/emulated/0/Android/data/org.love2d.android/files/games/
+
+$(PROJECT_NAME).love: $(SOURCE_FILES)
+	(cd game && zip -r ../$(PROJECT_NAME).love .)
+
+clean:
+	rm $(PROJECT_NAME).love
