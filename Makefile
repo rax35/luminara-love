@@ -11,6 +11,7 @@ copy: $(PROJECT_NAME).love
 	adb push $(PROJECT_NAME).love storage/emulated/0/Android/data/org.love2d.android/files/games/
 
 $(PROJECT_NAME).love: $(SOURCE_FILES)
+	rm ./$(PROJECT_NAME).love
 	(cd game && zip -r ../$(PROJECT_NAME).love .)
 
 clean:
