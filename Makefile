@@ -1,7 +1,10 @@
 SOURCE_FILES := $(wildcard game/*)
 PROJECT_NAME := Luminara
 
-.PHONY: copy clean
+.PHONY: copy clean launch
+
+launch: copy
+	adb shell am start "org.love2d.android/.MainActivity"
 
 copy: $(PROJECT_NAME).love
 	adb connect localhost:55555
