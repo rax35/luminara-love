@@ -7,7 +7,12 @@
   "format.enable": true,
   "format.defaultConfig": {
     "indent_style": "space",
-    "indent_size": "2"
+    "indent_size": "4"
+  },
+  "completion": {
+    "callSnippet": "Replace",
+    "showWord": "Disable",
+    "workspaceWord": false
   },
   "workspace.library": [
     "${3rd}/love2d/library",
