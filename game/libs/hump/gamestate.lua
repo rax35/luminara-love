@@ -36,9 +36,9 @@ local function __NULL__() end
 
 -- default gamestate produces error on every callback
 local state_init = setmetatable({ leave = __NULL__ }, {
-	__index = function()
-		error("Gamestate not initialized. Use Gamestate.switch()")
-	end,
+    __index = function()
+        error("Gamestate not initialized. Use Gamestate.switch()")
+    end,
 })
 
 ---@type State[]
@@ -48,7 +48,7 @@ local state_is_dirty = true
 
 local GS = {}
 function GS.new(t)
-	return t or {}
+    return t or {}
 end -- constructor - deprecated!
 
 ---comment
@@ -57,14 +57,14 @@ end -- constructor - deprecated!
 ---@param ... any
 ---@return nil
 local function change_state(stack_offset, to, ...)
-	local pre = stack[#stack]; -- initialize only on first call
-	(initialized_states[to] or to.init or __NULL__)(to)
+    local pre = stack[#stack]; -- initialize only on first call
+    (initialized_states[to] or to.init or __NULL__)(to)
 
-	initialized_states[to] = __NULL__
+    initialized_states[to] = __NULL__
 
-	stack[#stack + stack_offset] = to
-	state_is_dirty = true
-	return (to.enter or __NULL__)(to, pre, ...)
+    stack[#stack + stack_offset] = to
+    state_is_dirty = true
+    return (to.enter or __NULL__)(to, pre, ...)
 end
 
 ---Switch to a gamestate, with any additional arguments passed to the new state.
@@ -74,29 +74,29 @@ end
 ---@param ... any Additional arguments to pass to `to:enter(previous, ...)`
 ---@return nil
 function GS.switch(to, ...)
-	assert(to, "Missing argument: Gamestate to switch to")
-	assert(to ~= GS, "Can't call switch with colon operator");
-	(stack[#stack].leave or __NULL__)(stack[#stack])
-	return change_state(0, to, ...)
+    assert(to, "Missing argument: Gamestate to switch to")
+    assert(to ~= GS, "Can't call switch with colon operator");
+    (stack[#stack].leave or __NULL__)(stack[#stack])
+    return change_state(0, to, ...)
 end
 
 function GS.push(to, ...)
-	assert(to, "Missing argument: Gamestate to switch to")
-	assert(to ~= GS, "Can't call push with colon operator")
-	return change_state(1, to, ...)
+    assert(to, "Missing argument: Gamestate to switch to")
+    assert(to ~= GS, "Can't call push with colon operator")
+    return change_state(1, to, ...)
 end
 
 function GS.pop(...)
-	assert(#stack > 1, "No more states to pop!")
-	local pre, to = stack[#stack], stack[#stack - 1]
-	stack[#stack] = nil
-	(pre.leave or __NULL__)(pre)
-	state_is_dirty = true
-	return (to.resume or __NULL__)(to, pre, ...)
+    assert(#stack > 1, "No more states to pop!")
+    local pre, to = stack[#stack], stack[#stack - 1]
+    stack[#stack] = nil
+    (pre.leave or __NULL__)(pre)
+    state_is_dirty = true
+    return (to.resume or __NULL__)(to, pre, ...)
 end
 
 function GS.current()
-	return stack[#stack]
+    return stack[#stack]
 end
 
 -- XXX: don't overwrite love.errorhandler by default:
@@ -108,37 +108,37 @@ local all_callbacks = { "draw", "update" }
 -- fetch event callbacks from love.handlers
 ---@diagnostic disable-next-line: undefined-field
 for k in pairs(love.handlers) do
-	all_callbacks[#all_callbacks + 1] = k
+    all_callbacks[#all_callbacks + 1] = k
 end
 
 function GS.registerEvents(callbacks)
-	local registry = {}
-	callbacks = callbacks or all_callbacks
-	for _, f in ipairs(callbacks) do
-		registry[f] = love[f] or __NULL__
-		love[f] = function(...)
-			registry[f](...)
-			return GS[f](...)
-		end
-	end
+    local registry = {}
+    callbacks = callbacks or all_callbacks
+    for _, f in ipairs(callbacks) do
+        registry[f] = love[f] or __NULL__
+        love[f] = function(...)
+            registry[f](...)
+            return GS[f](...)
+        end
+    end
 end
 local function_cache = {}
 
 -- forward any undefined functions
 setmetatable(GS, {
-	__index = function(_, func)
-		-- call function only if at least one 'update' was called beforehand
-		-- (see issue #46)
-		if not state_is_dirty or func == "update" then
-			state_is_dirty = false
-			function_cache[func] = function_cache[func]
-				or function(...)
-					return (stack[#stack][func] or __NULL__)(stack[#stack], ...)
-				end
-			return function_cache[func]
-		end
-		return __NULL__
-	end,
+    __index = function(_, func)
+        -- call function only if at least one 'update' was called beforehand
+        -- (see issue #46)
+        if not state_is_dirty or func == "update" then
+            state_is_dirty = false
+            function_cache[func] = function_cache[func]
+                or function(...)
+                    return (stack[#stack][func] or __NULL__)(stack[#stack], ...)
+                end
+            return function_cache[func]
+        end
+        return __NULL__
+    end,
 })
 
 return GS
