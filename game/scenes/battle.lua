@@ -21,6 +21,8 @@ local canvas
 ---@type love.Quad
 local viewQuad
 
+local panId
+
 local function recalculateSizes()
     screenX, screenY, screenW, screenH = love.window.getSafeArea()
 
@@ -110,11 +112,27 @@ function battle:draw()
 end
 
 ---@diagnostic disable-next-line: unused-local
-function battle:touchmoved(_id, _x, _y, dx, dy, _pressure)
-    local x, y, w, h = viewQuad:getViewport()
-    x = math.clamp(x - dx, 0, (mapW * consts.tileRenderSize) - screenW)
-    y = math.clamp(y - dy, 0, (mapH * consts.tileRenderSize) - screenH)
-    viewQuad:setViewport(x, y, w, h)
+function battle:touchpressed(id, _x, _y, _dx, _dy, _pressure)
+    if not panId then
+        panId = id
+    end
+end
+
+---@diagnostic disable-next-line: unused-local
+function battle:touchmoved(id, _x, _y, dx, dy, _pressure)
+    if id == panId then
+        local x, y, w, h = viewQuad:getViewport()
+        x = math.clamp(x - dx, 0, mapPixelW - screenW)
+        y = math.clamp(y - dy, 0, mapPixelH - screenH)
+        viewQuad:setViewport(x, y, w, h)
+    end
+end
+
+---@diagnostic disable-next-line: unused-local
+function battle:touchreleased(id, _x, _y_dx, _dy, _pressure)
+    if id == panId then
+        panId = nil
+    end
 end
 
 function battle:keypressed(key)
