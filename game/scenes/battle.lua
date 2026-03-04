@@ -9,10 +9,10 @@ local screenX, screenY, screenW, screenH = 0, 0, 0, 0
 
 ---@type number[][]
 local map = {}
-local mapW = 20
-local mapH = 10
-local viewW = 0
-local viewH = 0
+local mapW = 30
+local mapH = 15
+local mapPixelW = mapW * consts.tileRenderSize
+local mapPixelH = mapH * consts.tileRenderSize
 
 local tileScale
 
@@ -41,8 +41,8 @@ local function recalculateSizes()
     viewH = math.min(mapH, math.ceil(screenH / consts.tileRenderSize))
 
     local x, y = viewQuad:getViewport()
-    x = math.clamp(x, 0, (mapW * consts.tileRenderSize) - screenW)
-    y = math.clamp(y, 0, (mapH * consts.tileRenderSize) - screenH)
+    x = math.clamp(x, 0, mapPixelW - screenW)
+    y = math.clamp(y, 0, mapPixelH - screenH)
     viewQuad:setViewport(x, y, screenW, screenH)
 end
 
@@ -63,14 +63,9 @@ function battle:init()
         end
     end
 
-    canvas = love.graphics.newCanvas(mapW * consts.tileRenderSize, mapH * consts.tileRenderSize)
-    viewQuad = love.graphics.newQuad(
-        0,
-        0,
-        viewW * consts.tileRenderSize,
-        viewH * consts.tileRenderSize,
-        canvas
-    )
+    screenX, screenY, screenW, screenH = love.window.getSafeArea()
+    canvas = love.graphics.newCanvas(mapPixelW, mapPixelH)
+    viewQuad = love.graphics.newQuad(0, 0, screenW, screenH, canvas)
 
     ---TODO(Optimization): This should be a named local function rather than closure
     canvas:renderTo(function()
@@ -107,6 +102,7 @@ function battle:draw()
     love.graphics.rectangle("line", screenX, screenY, screenW, screenH)
     love.graphics.setColor(1, 1, 1, 1)
     love.graphics.print(love.window.getDisplayOrientation(), 300, 200)
+    love.graphics.print(tostring(panId), 300, 250)
 
     love.graphics.reset()
 end
