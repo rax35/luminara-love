@@ -21,24 +21,25 @@ local canvas
 ---@type love.Quad
 local viewQuad
 
+---@type love.DisplayOrientation
+local orientation = "landscape"
+
 local panId
 
 local function recalculateSizes()
     screenX, screenY, screenW, screenH = love.window.getSafeArea()
 
-    local orientation = love.window.getDisplayOrientation()
+    local leftMargin = 0
+    local rightMargin = 10
 
-    if orientation == "landscape" then
-        screenW = screenW - 10
-    elseif orientation == "landscapeflipped" then
-        screenX = screenX + 10
-        screenW = screenW - 10
+    if orientation == "landscapeflipped" then
+        leftMargin, rightMargin = rightMargin, leftMargin
     elseif orientation == "portrait" or orientation == "portraitflipped" then
         error("Portrait Orientation should not be possible")
     end
 
-    viewW = math.min(mapW, math.ceil(screenW / consts.tileRenderSize))
-    viewH = math.min(mapH, math.ceil(screenH / consts.tileRenderSize))
+    screenX = screenX + leftMargin
+    screenW = screenW - (leftMargin + rightMargin)
 
     local x, y = viewQuad:getViewport()
     x = math.clamp(x, 0, mapPixelW - screenW)
@@ -88,6 +89,7 @@ function battle:init()
 end
 
 function battle:enter()
+    orientation = love.window.getDisplayOrientation()
     recalculateSizes()
 end
 
@@ -101,7 +103,7 @@ function battle:draw()
 
     love.graphics.rectangle("line", screenX, screenY, screenW, screenH)
     love.graphics.setColor(1, 1, 1, 1)
-    love.graphics.print(love.window.getDisplayOrientation(), 300, 200)
+    love.graphics.print(orientation, 300, 200)
     love.graphics.print(tostring(panId), 300, 250)
 
     love.graphics.reset()
@@ -141,7 +143,8 @@ function battle:resize()
     recalculateSizes()
 end
 
-function battle:displayrotated()
+function battle:displayrotated(_id, orient)
+    orientation = orient
     recalculateSizes()
 end
 
