@@ -117,8 +117,24 @@ function Input.touchreleased(id)
     touches.n = touches.n - 1
 end
 
+function Input.reset()
+    Input.swipe.x = 0
+    Input.swipe.y = 0
+    Input.pan.x = 0
+    Input.pan.y = 0
+    Input.pinch = 0
+    touches = {}
+    touches.n = 0
+end
+
+function Input.focus(isFocus)
+    if not isFocus then
+        Input.reset()
+    end
+end
+
 local __NULL__ = function() end
-local callbacks = { "update", "touchpressed", "touchmoved", "touchreleased" }
+local callbacks = { "update", "touchpressed", "touchmoved", "touchreleased", "focus" }
 function Input.registerCallbacks()
     local registry = {}
     for _, callback in ipairs(callbacks) do
