@@ -88,6 +88,8 @@ function battle:init()
             end
         end
     end)
+    local worldW, worldH = canvas:getDimensions()
+    cam = Camera:new(0, 0, worldW, worldH)
 end
 
 function battle:enter()
@@ -95,13 +97,7 @@ function battle:enter()
         cam:move(dx, dy)
     end
 
-    local worldW, worldH = canvas:getDimensions()
-    cam = Camera:new(0, 0, worldW, worldH)
     screenX, screenY, screenW, screenH = love.window.getSafeArea()
-    cam.screenX = screenX
-    cam.screenY = screenY
-    cam.w = screenW
-    cam.h = screenH
     orientation = love.window.getDisplayOrientation()
     recalculateSizes()
 end
