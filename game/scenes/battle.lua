@@ -26,12 +26,10 @@ local viewQuad
 local cam
 
 ---@type love.DisplayOrientation
-local orientation = "landscape"
-
-local panId
+local orientation
 
 local function recalculateSizes()
-    screenX, screenY, screenW, screenH = love.window.getSafeArea()
+    print("Resizing.....")
 
     local leftMargin = 0
     local rightMargin = 10
@@ -42,17 +40,15 @@ local function recalculateSizes()
         error("Portrait Orientation should not be possible")
     end
 
-    screenX = screenX + leftMargin
-    screenW = screenW - (leftMargin + rightMargin)
+    local x = screenX + leftMargin
+    local w = screenW - (leftMargin + rightMargin)
 
-    local x, y = viewQuad:getViewport()
-    x = math.clamp(x, 0, mapPixelW - screenW)
-    y = math.clamp(y, 0, mapPixelH - screenH)
-    cam.screenX = screenX
+    -- TODO(fix): This should be a function in camera that adjusts current view
+    -- if this change will show out of bounds area
+    cam.screenX = x
     cam.screenY = screenY
-    cam.w = screenW
+    cam.w = w
     cam.h = screenH
-    -- viewQuad:setViewport(x, y, screenW, screenH)
 end
 
 function battle:init()
@@ -76,7 +72,7 @@ function battle:init()
     canvas = love.graphics.newCanvas(mapPixelW, mapPixelH)
     viewQuad = love.graphics.newQuad(0, 0, screenW, screenH, canvas)
 
-    ---TODO(Optimization): This should be a named local function rather than closure
+    ---TODO(optimization): This should be a named local function rather than closure
     canvas:renderTo(function()
         for i = 0, mapH - 1 do
             for j = 0, mapW - 1 do
