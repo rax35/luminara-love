@@ -1,59 +1,52 @@
 -- TODO(feature): Tap, DoubleTap
--- TODO(required): keyboard, mouse input
--- TEST: How does mouse affect touch inputs
+-- TODO(feature): keyboard, mouse input
+-- TODO(fix): Don't register drag when one finger is removed after two finger gesture
+-- TEST: How does mouse and touchpad affect touch inputs
 
 Input = {
-    swipe = { x = 0, y = 0 },
+    drag = { x = 0, y = 0 },
     pan = { x = 0, y = 0 },
     pinch = 0,
 }
 local lastPinch = nil
 
 local touches = {}
-touches.n = 0
+local touchCount = 0
 
 function Input.update()
-    if touches.n == 0 then
-        Input.swipe.x = 0
-        Input.swipe.y = 0
+    if touchCount == 0 then
+        Input.drag.x = 0
+        Input.drag.y = 0
         Input.pan.x = 0
         Input.pan.y = 0
         Input.pinch = 0
         lastPinch = nil
-    end
-
-    if touches.n == 1 then
+    elseif touchCount == 1 then
         --- SWIPE
-        for id, touch in pairs(touches) do
-            if id ~= "n" then
-                local dx = touch.dx
-                local dy = touch.dy
+        for _, touch in pairs(touches) do
+            local dx = touch.dx
+            local dy = touch.dy
 
-                Input.swipe.x = dx
-                Input.swipe.y = dy
-                if Input.onSwipe then
-                    Input.onSwipe(dx, dy)
-                end
-
-                touch.dx = 0
-                touch.dy = 0
+            Input.drag.x = dx
+            Input.drag.y = dy
+            if Input.onDrag then
+                Input.onDrag(dx, dy)
             end
+
+            touch.dx = 0
+            touch.dy = 0
         end
         Input.pan.x = 0
         Input.pan.y = 0
         Input.pinch = 0
         lastPinch = nil
-    end
-
-    if touches.n == 2 then
-        Input.swipe.x = 0
-        Input.swipe.y = 0
+    elseif touchCount == 2 then
+        Input.drag.x = 0
+        Input.drag.y = 0
 
         local ids = {}
-        for id in pairs(touches) do
-            if id ~= "n" then
-                table.insert(ids, id)
-            end
+        for id, _ in pairs(touches) do
+            table.insert(ids, id)
         end
         local t1 = touches[ids[1]]
         local t2 = touches[ids[2]]
@@ -90,11 +83,11 @@ function Input.update()
 end
 
 function Input.touchpressed(id, x, y)
-    if touches.n >= 2 then
+    if touchCount >= 2 then
         return
     end
     touches[id] = { x = x, y = y, dx = 0, dy = 0, startX = x, startY = y }
-    touches.n = touches.n + 1
+    touchCount = touchCount + 1
 end
 
 function Input.touchmoved(id, x, y, dx, dy)
@@ -104,27 +97,26 @@ function Input.touchmoved(id, x, y, dx, dy)
     end
     t.x = x
     t.y = y
-    t.dx = dx
-    t.dy = dy
+    t.dx = t.dx + dx
+    t.dy = t.dy + dy
 end
 
 function Input.touchreleased(id)
-    local t = touches[id]
-    if not t then
+    if not touches[id] then
         return
     end
-    t = nil
-    touches.n = touches.n - 1
+    touches[id] = nil
+    touchCount = touchCount - 1
 end
 
 function Input.reset()
-    Input.swipe.x = 0
-    Input.swipe.y = 0
+    Input.drag.x = 0
+    Input.drag.y = 0
     Input.pan.x = 0
     Input.pan.y = 0
     Input.pinch = 0
     touches = {}
-    touches.n = 0
+    touchCount = 0
 end
 
 function Input.focus(isFocus)

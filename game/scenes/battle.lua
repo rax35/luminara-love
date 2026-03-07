@@ -103,7 +103,7 @@ function battle:enter()
 end
 
 function battle:leave()
-    Input.onSwipe = nil
+    Input.onDrag = nil
     Input.onPan = nil
     Input.onPinch = nil
 end
