@@ -1,93 +1,127 @@
--- TODO(feature): Tap, DoubleTap
+-- TODO(feature): Tap and hold (tap, hold and drag)
 -- TODO(feature): keyboard, mouse input
 -- TODO(fix): Don't register drag when one finger is removed after two finger gesture
 -- TEST: How does mouse and touchpad affect touch inputs
-
+local consts = require("consts")
 Input = {
     drag = { x = 0, y = 0 },
     pan = { x = 0, y = 0 },
     pinch = 0,
 }
-local lastPinch = nil
 
 local touches = {}
 local touchCount = 0
+local lastPinchDist = nil
+local pendingTap = nil
+
+local tapMaxDuration = consts.tapMaxDuration
+local doubleTapTime = consts.doubleTapTime
+local doubleTapDistance = consts.doubleTapDistance
+local tapMoveThreshold = consts.tapMoveThreshold
+
+local function resetMovement()
+    Input.drag.x = 0
+    Input.drag.y = 0
+    Input.pan.x = 0
+    Input.pan.y = 0
+    Input.pinch = 0
+end
+
+local function getTwoTouches()
+    local t1, t2
+    for _, t in pairs(touches) do
+        if not t1 then
+            t1 = t
+        else
+            t2 = t
+            break
+        end
+    end
+    return t1, t2
+end
 
 function Input.update()
-    if touchCount == 0 then
-        Input.drag.x = 0
-        Input.drag.y = 0
-        Input.pan.x = 0
-        Input.pan.y = 0
-        Input.pinch = 0
-        lastPinch = nil
-    elseif touchCount == 1 then
-        --- SWIPE
-        for _, touch in pairs(touches) do
-            local dx = touch.dx
-            local dy = touch.dy
+    resetMovement()
 
-            Input.drag.x = dx
-            Input.drag.y = dy
-            if Input.onDrag then
-                Input.onDrag(dx, dy)
+    if pendingTap then
+        local now = love.timer.getTime()
+
+        if (now - pendingTap.time) > doubleTapTime then
+            if Input.onTap then
+                Input.onTap(pendingTap.x, pendingTap.y)
             end
-
-            touch.dx = 0
-            touch.dy = 0
+            pendingTap = nil
         end
-        Input.pan.x = 0
-        Input.pan.y = 0
-        Input.pinch = 0
-        lastPinch = nil
+    end
+
+    if touchCount == 1 then
+        local t
+        for _, v in pairs(touches) do
+            t = v
+            break
+        end
+
+        if t.moved then
+            Input.drag.x = t.dx
+            Input.drag.y = t.dy
+            if Input.onDrag then
+                Input.onDrag(t.dx, t.dy)
+            end
+            t.dx = 0
+            t.dy = 0
+        end
     elseif touchCount == 2 then
-        Input.drag.x = 0
-        Input.drag.y = 0
+        local t1, t2 = getTwoTouches()
 
-        local ids = {}
-        for id, _ in pairs(touches) do
-            table.insert(ids, id)
+        local panX = (t1.dx + t2.dx) * 0.5
+        local panY = (t1.dy + t2.dy) * 0.5
+
+        Input.pan.x = panX
+        Input.pan.y = panY
+        if Input.onPan then
+            Input.onPan(panX, panY)
         end
-        local t1 = touches[ids[1]]
-        local t2 = touches[ids[2]]
 
         --- PINCH
         -- TODO(feature): Also report the center of the pinch gesture
-        local dist = ((t1.x - t2.x) ^ 2 + (t1.y - t2.y) ^ 2) ^ 0.5
-        if lastPinch then
-            local pinch = dist - lastPinch
+        local dx = t1.x - t2.x
+        local dy = t1.y - t2.y
+        local dist = math.sqrt(dx * dx + dy * dy)
+
+        if lastPinchDist then
+            -- TODO(test): pinch = (dist-lastPinchDist)/lastPinchDist
+            local pinch = dist - lastPinchDist
             Input.pinch = pinch
             if Input.onPinch then
                 Input.onPinch(pinch)
             end
-        else
-            Input.pinch = 0
         end
-        lastPinch = dist
+        lastPinchDist = dist
 
-        --- PAN
-        local dx = (t1.dx + t2.dx) / 2
-        local dy = (t1.dy + t2.dy) / 2
-
-        Input.pan.x = dx
-        Input.pan.y = dy
-        if Input.onPan then
-            Input.onPan(dx, dy)
-        end
-
-        t1.dx = 0
-        t1.dy = 0
-        t2.dx = 0
-        t2.dy = 0
+        t1.dx, t1.dy = 0, 0
+        t2.dx, t2.dy = 0, 0
     end
 end
 
 function Input.touchpressed(id, x, y)
-    if touchCount >= 2 then
-        return
-    end
-    touches[id] = { x = x, y = y, dx = 0, dy = 0, startX = x, startY = y }
+    touches[id] = {
+        x = x,
+        y = y,
+        dx = 0,
+        dy = 0,
+        startX = x,
+        startY = y,
+        moved = false,
+        startTime = love.timer.getTime(),
+    }
+
     touchCount = touchCount + 1
+
+    lastPinchDist = nil
+
+    for _, t in pairs(touches) do
+        t.dx, t.dy = 0, 0
+    end
 end
 
 function Input.touchmoved(id, x, y, dx, dy)
@@ -99,14 +133,51 @@ function Input.touchmoved(id, x, y, dx, dy)
     t.y = y
     t.dx = t.dx + dx
     t.dy = t.dy + dy
+
+    if math.abs(x - t.startX) > tapMoveThreshold or math.abs(y - t.startY) > tapMoveThreshold then
+        t.moved = true
+    end
 end
 
 function Input.touchreleased(id)
-    if not touches[id] then
+    local t = touches[id]
+    if not t then
         return
     end
+
+    local now = love.timer.getTime()
+    local held = now - t.startTime
+
+    if touchCount ~= 1 then
+        goto reset
+    end
+
+    if t.moved or held > tapMaxDuration then
+        goto reset
+    end
+
+    if pendingTap then
+        local dx = t.startX - pendingTap.x
+        local dy = t.startY - pendingTap.y
+        local dist = math.sqrt(dx * dx + dy * dy)
+
+        if (now - pendingTap.time) < doubleTapTime and dist < doubleTapDistance then
+            if Input.onDoubleTap then
+                Input.onDoubleTap(pendingTap.x, pendingTap.y)
+            end
+            pendingTap = nil
+        end
+    else
+        pendingTap = { x = t.startX, y = t.startY, time = now }
+    end
+
+    ::reset::
     touches[id] = nil
     touchCount = touchCount - 1
+    lastPinchDist = nil
+    for _, v in pairs(touches) do
+        v.dx, v.dy = 0, 0
+    end
 end
 
 function Input.reset()
@@ -117,6 +188,8 @@ function Input.reset()
     Input.pinch = 0
     touches = {}
     touchCount = 0
+    lastPinchDist = nil
+    pendingTap = nil
 end
 
 function Input.focus(isFocus)

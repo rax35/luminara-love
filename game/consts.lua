@@ -1,8 +1,8 @@
 local consts = {
     tileRenderSize = 48,
     tapMaxDuration = 0.25,
-    doubleTapTime = 0.3,
-    doubleTapDistance = 20,
+    doubleTapTime = 0.4,
+    doubleTapDistance = 30,
     tapMoveThreshold = 3,
 }
 
