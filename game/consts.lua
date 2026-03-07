@@ -1,5 +1,9 @@
 local consts = {
     tileRenderSize = 48,
+    tapMaxDuration = 0.25,
+    doubleTapTime = 0.3,
+    doubleTapDistance = 20,
+    tapMoveThreshold = 3,
 }
 
 return setmetatable({}, {
