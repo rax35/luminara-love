@@ -41,7 +41,10 @@ function Camera:draw(drawFunc)
     love.graphics.push()
 
     love.graphics.scale(self.zoom, self.zoom)
-    love.graphics.translate(-(self.x - self.screenX), -(self.y - self.screenY))
+    love.graphics.translate(
+        math.ceil(-(self.x - self.screenX)),
+        math.ceil(-(self.y - self.screenY))
+    )
     drawFunc(self.x, self.y, self.w, self.h)
 
     love.graphics.pop()
