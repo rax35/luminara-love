@@ -40,6 +40,7 @@ function Camera:draw(drawFunc)
     love.graphics.setScissor(self.screenX, self.screenY, self.w, self.h)
     love.graphics.push()
 
+    ---TEST: test if directly passing the transforms in map rendering prevents the jitters
     love.graphics.scale(self.zoom, self.zoom)
     love.graphics.translate(
         math.ceil(-(self.x - self.screenX)),
