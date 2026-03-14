@@ -1,32 +1,21 @@
-local consts = require("consts")
+local Map = require("map")
 
-local Camera = require("camera")
-
+local mapPanFactor = require("consts").mapPanFactor
 ---@type State
 local battle = {}
-local image
 
 ---@type number,number,number,number
 local screenX, screenY, screenW, screenH = 0, 0, 0, 0
 
----@type number[][]
-local map = {}
+local map
 local mapW = 30
 local mapH = 15
-local mapPixelW = mapW * consts.tileRenderSize
-local mapPixelH = mapH * consts.tileRenderSize
-
-local tileScale
-
----@type love.Canvas
-local canvas
----@type love.Quad
-local viewQuad
----@type Camera
-local cam
 
 ---@type love.DisplayOrientation
 local orientation
+
+local taps = 0
+local dTaps = 0
 
 local function recalculateSizes()
     print("Resizing.....")
@@ -45,56 +34,30 @@ local function recalculateSizes()
 
     -- TODO(fix): This should be a function in camera that adjusts current view
     -- if this change will show out of bounds area
-    cam.screenX = x
-    cam.screenY = screenY
-    cam.w = w
-    cam.h = screenH
+    map.camera.screenX = x
+    map.camera.screenY = screenY
+    map.camera.w = w
+    map.camera.h = screenH
 end
 
 function battle:init()
-    image = love.graphics.newImage("assets/atlas.png")
-    local quad = {}
-    quad[1] = love.graphics.newQuad(0, 0, 16, 16, image)
-    quad[2] = love.graphics.newQuad(0, 16, 16, 16, image)
-    quad[3] = love.graphics.newQuad(16, 0, 16, 16, image)
-    quad[4] = love.graphics.newQuad(16, 16, 16, 16, image)
-
-    tileScale = consts.tileRenderSize / 16
-
-    for i = 1, mapH do
-        map[i] = {}
-        for j = 1, mapW do
-            map[i][j] = math.random(1, 4)
-        end
-    end
+    map = Map.new(mapW, mapH)
 
     screenX, screenY, screenW, screenH = love.window.getSafeArea()
-    canvas = love.graphics.newCanvas(mapPixelW, mapPixelH)
-    viewQuad = love.graphics.newQuad(0, 0, screenW, screenH, canvas)
-
-    ---TODO(optimization): This should be a named local function rather than closure
-    canvas:renderTo(function()
-        for i = 0, mapH - 1 do
-            for j = 0, mapW - 1 do
-                love.graphics.draw(
-                    image,
-                    quad[map[i + 1][j + 1]],
-                    j * consts.tileRenderSize,
-                    i * consts.tileRenderSize,
-                    0,
-                    tileScale,
-                    tileScale
-                )
-            end
-        end
-    end)
-    local worldW, worldH = canvas:getDimensions()
-    cam = Camera:new(0, 0, worldW, worldH)
 end
 
 function battle:enter()
     Input.onPan = function(dx, dy)
-        cam:move(dx, dy)
+        map.camera:move(dx, dy)
+    end
+    Input.onDrag = function(dx, dy)
+        map.camera:move(dx * mapPanFactor, dy * mapPanFactor)
+    end
+    Input.onTap = function(_, _)
+        taps = taps + 1
+    end
+    Input.onDoubleTap = function(_, _)
+        dTaps = dTaps + 1
     end
 
     screenX, screenY, screenW, screenH = love.window.getSafeArea()
@@ -123,9 +86,9 @@ function battle:update()
 end
 
 local function draw_map(x, y, w, h)
-    viewQuad:setViewport(x, y, w, h)
-    -- love.graphics.draw(canvas)
-    love.graphics.draw(canvas, viewQuad, x, y)
+    -- viewQuad:setViewport(x, y, w, h)
+    love.graphics.draw(map.canvas, 0.5, 0.5)
+    -- love.graphics.draw(map.canvas, viewQuad, x, y)
 end
 
 function battle:draw()
@@ -139,12 +102,11 @@ function battle:draw()
 
     love.graphics.rectangle("line", screenX, screenY, screenW, screenH)
     --]]
-    cam:draw(draw_map)
+    map.camera:draw(draw_map)
     love.graphics.setColor(1, 1, 1, 1)
     love.graphics.print(orientation, 300, 200)
-    love.graphics.print(Input.pan.x .. "," .. Input.pan.y, 300, 250)
-
-    love.graphics.reset()
+    love.graphics.print(love.timer.getFPS(), 300, 225)
+    love.graphics.print(taps .. "," .. dTaps, 300, 250)
 end
 
 -- ---@diagnostic disable-next-line: unused-local
