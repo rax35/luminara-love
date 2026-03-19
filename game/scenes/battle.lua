@@ -7,6 +7,7 @@ local battle = {}
 ---@type number,number,number,number
 local screenX, screenY, screenW, screenH = 0, 0, 0, 0
 
+---@type lum.Map
 local map
 local mapW = 30
 local mapH = 15
@@ -53,10 +54,12 @@ function battle:enter()
     Input.onDrag = function(dx, dy)
         map.camera:move(dx * mapPanFactor, dy * mapPanFactor)
     end
-    Input.onTap = function(_, _)
+    Input.onTap = function(x, y)
+        map:onTap(x, y)
         taps = taps + 1
     end
-    Input.onDoubleTap = function(_, _)
+    Input.onDoubleTap = function(x, y)
+        map:onDoubleTap(x, y)
         dTaps = dTaps + 1
     end
 
@@ -85,12 +88,6 @@ function battle:update()
     -- cam.zoom = math.clamp(zoom, 0.5, 2)
 end
 
-local function draw_map(x, y, w, h)
-    -- viewQuad:setViewport(x, y, w, h)
-    love.graphics.draw(map.canvas, 0.5, 0.5)
-    -- love.graphics.draw(map.canvas, viewQuad, x, y)
-end
-
 function battle:draw()
     love.graphics.clear(1, 1, 1, 1)
 
@@ -102,7 +99,7 @@ function battle:draw()
 
     love.graphics.rectangle("line", screenX, screenY, screenW, screenH)
     --]]
-    map.camera:draw(draw_map)
+    map:draw()
     love.graphics.setColor(1, 1, 1, 1)
     love.graphics.print(orientation, 300, 200)
     love.graphics.print(love.timer.getFPS(), 300, 225)
