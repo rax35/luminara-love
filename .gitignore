@@ -1,1 +1,3 @@
 **/*.love
+node_modules/
+build/

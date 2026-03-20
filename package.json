@@ -1,0 +1,39 @@
+{
+  "$schema": "https://www.schemastore.org/package.json",
+  "name": "luminara2",
+  "scripts": {
+    "start": "love build --console",
+    "clean": "rm -r $npm_package_name.love build",
+    "android": "npm run build && npm run android:copy && npm run android:launch",
+    "android:launch": "adb shell am start 'org.love2d.android/.MainActivity'",
+    "android:copy": "adb push $npm_package_name.love storage/emulated/0/Android/data/org.love2d.android/files/games/$npm_package_name.love",
+    "build": "npm run build:tstl && npm run build:copy && npm run build:pack",
+    "lint": "npm run lint:prettier && npm run lint:eslint",
+    "build:pack": "cd build && zip -r -FS ../$npm_package_name.love .",
+    "build:tstl": "tstl -p tsconfig.json",
+    "build:copy": "copyfiles --all \"res/**/*\" build",
+    "build:watch": "tstl -w -p tsconfig.json",
+    "lint:eslint": "eslint",
+    "lint:prettier": "prettier \"**/*.{js,ts,ym,md}\" --check",
+    "fix:prettier": "prettier \"**/*.{js,ts,ym,md}\" --check --write"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@eslint/json": "^1.1.0",
+    "@eslint/markdown": "^7.5.1",
+    "@typescript-eslint/eslint-plugin": "^8.57.1",
+    "copyfiles": "^2.4.1",
+    "eslint": "^10.0.3",
+    "jiti": "^2.6.1",
+    "love-typescript-definitions": "^11.5.2",
+    "lua-types": "^2.14.1",
+    "prettier": "^3.8.1",
+    "prettier-plugin-organize-imports": "^4.3.0",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.57.1",
+    "typescript-to-lua": "^1.34.0"
+  },
+  "dependencies": {
+    "eslint-config-prettier": "^10.1.8"
+  }
+}
