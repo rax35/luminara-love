@@ -1,4 +1,10 @@
+import * as Input from "./input";
+
 love.load = () => {
-  print("ts test")
-  love.graphics.setDefaultFilter("nearest", "nearest")
-}
+  print("ts test");
+  Input.init();
+  love.graphics.setDefaultFilter("nearest", "nearest");
+};
+love.update = () => {
+  print("main update");
+};

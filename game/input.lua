@@ -1,24 +1,3 @@
--- TODO(feature): Tap and hold (tap, hold and drag)
--- TODO(feature): keyboard, mouse input
--- TODO(fix): Don't register drag when one finger is removed after two finger gesture
--- TEST: How does mouse and touchpad affect touch inputs
-local consts = require("consts")
-Input = {
-    drag = { x = 0, y = 0 },
-    pan = { x = 0, y = 0 },
-    pinch = 0,
-}
-
-local touches = {}
-local touchCount = 0
-local lastPinchDist = nil
-local pendingTap = nil
-
-local tapMaxDuration = consts.tapMaxDuration
-local doubleTapTime = consts.doubleTapTime
-local doubleTapDistance = consts.doubleTapDistance
-local tapMoveThreshold = consts.tapMoveThreshold
-
 local function resetMovement()
     Input.drag.x = 0
     Input.drag.y = 0
@@ -103,83 +82,6 @@ function Input.update()
     end
 end
 
-function Input.touchpressed(id, x, y)
-    touches[id] = {
-        x = x,
-        y = y,
-        dx = 0,
-        dy = 0,
-        startX = x,
-        startY = y,
-        moved = false,
-        startTime = love.timer.getTime(),
-    }
-
-    touchCount = touchCount + 1
-
-    lastPinchDist = nil
-
-    for _, t in pairs(touches) do
-        t.dx, t.dy = 0, 0
-    end
-end
-
-function Input.touchmoved(id, x, y, dx, dy)
-    local t = touches[id]
-    if not t then
-        return
-    end
-    t.x = x
-    t.y = y
-    t.dx = t.dx + dx
-    t.dy = t.dy + dy
-
-    if math.abs(x - t.startX) > tapMoveThreshold or math.abs(y - t.startY) > tapMoveThreshold then
-        t.moved = true
-    end
-end
-
-function Input.touchreleased(id)
-    local t = touches[id]
-    if not t then
-        return
-    end
-
-    local now = love.timer.getTime()
-    local held = now - t.startTime
-
-    if touchCount ~= 1 then
-        goto reset
-    end
-
-    if t.moved or held > tapMaxDuration then
-        goto reset
-    end
-
-    if pendingTap then
-        local dx = t.startX - pendingTap.x
-        local dy = t.startY - pendingTap.y
-        local dist = math.sqrt(dx * dx + dy * dy)
-
-        if (now - pendingTap.time) < doubleTapTime and dist < doubleTapDistance then
-            if Input.onDoubleTap then
-                Input.onDoubleTap(pendingTap.x, pendingTap.y)
-            end
-            pendingTap = nil
-        end
-    else
-        pendingTap = { x = t.startX, y = t.startY, time = now }
-    end
-
-    ::reset::
-    touches[id] = nil
-    touchCount = touchCount - 1
-    lastPinchDist = nil
-    for _, v in pairs(touches) do
-        v.dx, v.dy = 0, 0
-    end
-end
-
 function Input.reset()
     Input.drag.x = 0
     Input.drag.y = 0
@@ -190,12 +92,6 @@ function Input.reset()
     touchCount = 0
     lastPinchDist = nil
     pendingTap = nil
-end
-
-function Input.focus(isFocus)
-    if not isFocus then
-        Input.reset()
-    end
 end
 
 local __NULL__ = function() end

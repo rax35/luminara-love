@@ -14,10 +14,11 @@
       "lua-types/jit",
       "love-typescript-definitions",
       "@typescript-to-lua/language-extensions"
-    ]
+    ],
+    "noImplicitAny": true
   },
   "include": [
-    "src"
+    "src",
   ],
   "tstl": {
     "luaLibImport": "require",
