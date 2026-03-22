@@ -6,8 +6,8 @@ export class BattleMap {
   private tiles: number[][];
   private camera: Camera;
   private canvas: Canvas;
-  private blueTiles: number[] = [];
-  private redTiles: number[] = [];
+  private blueTiles = new Set<number>();
+  private redTiles = new Set<number>();
 
   constructor(
     private w: number,
@@ -56,5 +56,44 @@ export class BattleMap {
         });
       }
     }
+  }
+
+  public draw() {
+    this.camera.attach();
+
+    love.graphics.draw(this.canvas, 0.5, 0.5);
+
+    love.graphics.setColor(0, 0.1, 0.8, 0.4);
+    for (const idx of this.blueTiles) {
+      const [x, y] = this.idxToPos(idx);
+      love.graphics.rectangle("fill", x, y, tileRenderSize, tileRenderSize);
+    }
+
+    love.graphics.setColor(0.8, 0, 0, 0.4);
+    for (const idx of this.redTiles) {
+      const [x, y] = this.idxToPos(idx);
+      love.graphics.rectangle("fill", x, y, tileRenderSize, tileRenderSize);
+    }
+
+    this.camera.detach();
+  }
+
+  private idxToPos(idx: number): [number, number] {
+    return [
+      Math.floor(idx / this.w) * tileRenderSize,
+      (idx % this.w) * tileRenderSize,
+    ];
+  }
+
+  private posToIdx(x: number, y: number): number {
+    return (
+      Math.floor(y / tileRenderSize) * this.w + Math.floor(x / tileRenderSize)
+    );
+  }
+
+  public onTap(sx: number, sy: number) {
+    const [wx, wy] = this.camera.screenToWorld(sx, sy);
+    const idx = this.posToIdx(wx, wy);
+    this.blueTiles.add(idx);
   }
 }
