@@ -2,11 +2,19 @@
 // TODO(feature): keyboard, mouse input
 // TODO(fix): Don't register drag when one finger is removed after two finger gesture
 // TEST: How does mouse and touchpad affect touch inputs
-import { Handlers } from "love-typescript-definitions/typings/love/handlers";
-import { doubleTapDistance, doubleTapTime, tapMaxDuration, tapMoveThreshold } from "./constants";
 import { LightUserData } from "love";
+import {
+  doubleTapDistance,
+  doubleTapTime,
+  tapMaxDuration,
+  tapMoveThreshold,
+} from "./constants";
+import { addListner, EngineEvents } from "./dispatcher";
 
-interface Vec2 { x: number; y: number }
+interface Vec2 {
+  x: number;
+  y: number;
+}
 
 interface Touch {
   x: number;
@@ -19,29 +27,34 @@ interface Touch {
   startTime: number;
 }
 
-export abstract class gestures {
-  static get drag(): Readonly<typeof _drag> {
-    return _drag
-  }
-  static get pan(): Readonly<typeof _drag> {
-    return _pan
-  }
-  static get pinch(): Readonly<typeof _pinch> {
-    return _pinch
-  }
-}
+export const gestures = {
+  get drag(): Readonly<typeof _drag> {
+    return _drag;
+  },
+  get pan(): Readonly<typeof _pan> {
+    return _pan;
+  },
+  get pinch(): Readonly<typeof _pinch> {
+    return _pinch;
+  },
+};
+
 const _drag: Vec2 = { x: 0, y: 0 };
 const _pan: Vec2 = { x: 0, y: 0 };
 let _pinch = 0;
 
 let onTap: ((x: number, y: number) => void) | undefined = undefined;
 let onDoubleTap: ((x: number, y: number) => void) | undefined = undefined;
+let onDrag: ((dx: number, dy: number) => void) | undefined = undefined;
+let onPan: ((dx: number, dy: number) => void) | undefined = undefined;
+let onPinch: ((dist: number) => void) | undefined = undefined;
 
 const touches = new Map<LightUserData<"Touch">, Touch>();
-let pendingTap: { x: number; y: number; tapTime: number } | undefined = undefined;
+let pendingTap: { x: number; y: number; tapTime: number } | undefined =
+  undefined;
 let lastPinchDist: number | undefined = undefined;
 
-const touchpressed: typeof love.touchpressed = (
+const touchpressed: EngineEvents["touchpressed"] = (
   id,
   x,
   y,
@@ -62,11 +75,19 @@ const touchpressed: typeof love.touchpressed = (
   lastPinchDist = undefined;
 
   for (const [_, touch] of touches) {
-    ((touch.dx = 0), (touch.dy = 0));
+    touch.dx = 0;
+    touch.dy = 0;
   }
 };
 
-const touchmoved: typeof love.touchmoved = (id, x, y, dx, dy, _pressure) => {
+const touchmoved: EngineEvents["touchmoved"] = (
+  id,
+  x,
+  y,
+  dx,
+  dy,
+  _pressure,
+) => {
   const t = touches.get(id);
   if (!t) {
     return;
@@ -85,7 +106,7 @@ const touchmoved: typeof love.touchmoved = (id, x, y, dx, dy, _pressure) => {
   }
 };
 
-const touchreleased: typeof love.touchreleased = (
+const touchreleased: EngineEvents["touchreleased"] = (
   id,
   _x,
   _y,
@@ -97,16 +118,17 @@ const touchreleased: typeof love.touchreleased = (
   if (!t) {
     return;
   }
-  touches.delete(id)
-  lastPinchDist = undefined
+  touches.delete(id);
+  lastPinchDist = undefined;
   for (const [_, touch] of touches) {
-    ((touch.dx = 0), (touch.dy = 0));
+    touch.dx = 0;
+    touch.dy = 0;
   }
 
   const now = love.timer.getTime();
-  const held = now - t.startTime
-  if (t.moved || held > tapMaxDuration || touches.size != 1) {
-    return
+  const held = now - t.startTime;
+  if (t.moved || held > tapMaxDuration || touches.size !== 1) {
+    return;
   }
 
   if (!pendingTap) {
@@ -127,11 +149,11 @@ const touchreleased: typeof love.touchreleased = (
   }
 };
 
-const focus: typeof love.focus = (focused) => {
+const focus: EngineEvents["focus"] = (focused) => {
   if (!focused) {
-    reset()
+    reset();
   }
-}
+};
 
 function resetGestures() {
   _drag.x = 0;
@@ -154,18 +176,63 @@ function reset() {
 export function resetCallbacks() {
   onTap = undefined;
   onDoubleTap = undefined;
+  onDrag = undefined;
+  onPan = undefined;
+  onPinch = undefined;
 }
 
-const update: NonNullable<typeof love.update> = (dt)=> {
-  print("Input update")
-}
+const update: EngineEvents["update"] = (_dt) => {
+  resetGestures();
 
-type test = keyof Handlers
-export function init(this: void) {
-  const originalUpdate = love.update;
-  love.update = (dt) => {
-    update(dt);
-    print("input update");
-    originalUpdate?.(dt);
-  };
+  if (pendingTap) {
+    const now = love.timer.getTime();
+    if (now - pendingTap.tapTime > doubleTapTime) {
+      onTap?.(pendingTap.x, pendingTap.y);
+      pendingTap = undefined;
+    }
+  }
+
+  if (touches.size === 1) {
+    // --------DRAG---------
+    const [touch] = touches.values();
+    if (touch.moved) {
+      _drag.x = touch.dx;
+      _drag.y = touch.dy;
+      onDrag?.(_drag.x, _drag.y);
+      touch.dx = 0;
+      touch.dy = 0;
+    }
+  }
+
+  if (touches.size === 2) {
+    const [touch1, touch2] = touches.values();
+
+    // ---------PAN---------
+    _pan.x = (touch1.dx + touch2.dx) * 0.5;
+    _pan.y = (touch1.dy + touch2.dy) * 0.5;
+    onPan?.(_pan.x, _pan.y);
+
+    // --------PINCH--------
+    // TODO(feature): Also report the center of the pinch gesture
+    const dx = touch1.x - touch2.x;
+    const dy = touch1.y - touch2.y;
+    const dist = Math.sqrt(Math.pow(dx, 2) + Math.pow(dy, 2));
+    if (lastPinchDist !== undefined) {
+      _pinch = dist - lastPinchDist;
+      onPinch?.(_pinch);
+    }
+
+    touch1.dx = 0;
+    touch1.dy = 0;
+    touch2.dx = 0;
+    touch2.dy = 0;
+  }
+};
+
+export function initInput() {
+  addListner("update", update);
+  addListner("focus", focus);
+  addListner("touchpressed", touchpressed);
+  addListner("touchmoved", touchmoved);
+  addListner("touchreleased", touchreleased);
 }

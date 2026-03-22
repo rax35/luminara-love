@@ -1,10 +1,9 @@
-import * as Input from "./input";
+import { setupDispatcher } from "./dispatcher";
+import { initInput } from "./input";
 
 love.load = () => {
+  setupDispatcher();
   print("ts test");
-  Input.init();
+  initInput();
   love.graphics.setDefaultFilter("nearest", "nearest");
-};
-love.update = () => {
-  print("main update");
 };
